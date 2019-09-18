@@ -1,0 +1,175 @@
+
+##############################
+#
+# System: 1529 (AIX200/4HT-S)
+#
+# Supervisor: JW
+# Comment: 15QWs, Tanpassungfactor ajusted. 530nm targeted
+# Based on: T2116GQTs
+#
+# (ONLY 1 supervisor / ONLY 1 comment line)
+#
+#
+# Bubbler-Temperaturen (°C):
+# TMGa_1: 0
+# TMAl_1: 5
+# TMAl_2: 14
+# Cp2Mg: 17
+# TEGa_1: 17
+# TMIn_2: 17
+##############################
+#Subroutinen einlesen
+read subfunctions.epi;
+##############################
+# VARIABLEN:
+# Faktor zum Anpassen des Rotationsgases
+variable RotationAnpassFaktor = 1.0;
+# Absolute Anpassung aller verwendeten Temperaturen
+variable TempAnpassung = 10;
+	#
+	#
+	#
+	#
+layer {
+	Initflux_v1.0;
+	Pumpdown_v1.0;
+	Heatup_700_v1.0;
+	#	Heatup;
+	#	Desorption;
+	#	Nucleation;
+	# Stabilize with NH3 ######################################################################
+	0:10	"(e01) prerun sources", NH3_1.run = open,
+		DummyHyd.run = close,
+		TMGa_1.line = open,
+		TMGa_1.source to 13,
+		TMGa_1.push to 487;
+	2:00	"(e02) ramp to growth conditions", ReactorTemp to 1120+TempAnpassung,
+		ReactorPress to 250,
+		Rotation to 40*RotationAnpassFaktor,
+		RunHydride to 1125,
+		PushHydride to 1125,
+		RunDopant to 350,
+		PushDopant to 350,
+		RunMO to 300,
+		PushMO to 300,
+		DummyHyd.source to 100;
+		"(e08) wait for temperature > 1119", until ReactorTemp >> 1119+TempAnpassung;
+	# GaN Buffer Layer Growth ###############################################################
+	4:00	"(e08b) Start with lateral growth mode", TMGa_1.run = open, DummyMO_1.run = close;
+	1:00	"(e08c) go to higher growth speed", TMGa_1.source to 26,
+		TMGa_1.push to 474,
+		NH3_1.source to 1000,
+		RunHydride to 1625,
+		PushHydride to 1625,
+		ReactorTemp to 950+TempAnpassung,
+		Rotation to 20*RotationAnpassFaktor;
+	2:40:00	"(e09) grow ~4µm u-GaN";
+	10:00      "(e17) prerun sources", TMIn_2.line = open,
+		TEGa_1.line = open,
+		TMIn_2.source to 200,
+		TMIn_2.push to 300,
+		TMIn_2.press to 400;
+       0:01      "(e17) stop growth", TMGa_1.run = close,
+		TMGa_1.line = close,
+		DummyMO_1.run = open,
+		TMGa_1.source to 10,
+		TMGa_1.push to 490;
+       0:30      "(e18) change to InGaN", ReactorTemp to 820+TempAnpassung in 120,
+		Rotation to 35*RotationAnpassFaktor,
+		RunHydride to 100,
+		PushHydride to 100,
+		DummyHyd.source to 50,
+		NH3_1.source to 5000,
+		SiH4_1.source to 10,
+		SiH4_1.dilute to 1000,
+		SiH4_1.inject to 5,
+		SiH4_1.push to 45,
+		RunDopant to 100,
+		PushDopant to 100,
+		RunMO to 100,
+		PushMO to 100,
+		DummyMO_2.source to 50,
+		DummyMO_1.run = open,
+		TEGa_1.source to 100,
+		TEGa_1.push to 400,
+		TEGa_1.press to 600;
+       1:30      "(e19) change to InGaN", ReactorPress to 200,
+            Rotation to 40*RotationAnpassFaktor,
+            N2.line = open,
+            N2.run = open,
+            H2.line = close,
+            H2.run = close,
+            RunMO to 1000,
+            PushMO to 500,
+            DummyMO_2.source to 500,
+            DummyMO_2.run = open,
+            TMAl_2.run = close;
+            "(e20) wait until temperature > 819°C", until ReactorTemp >> 819+TempAnpassung;
+       loop 15 {
+            # Grow Barrier ##############################################################
+       0:10      "(Active_Layer_1) GaN Barrier and increase ReactorTemp", ReactorTemp to 820+TempAnpassung,
+            TEGa_1.run = open,
+            DummyMO_2.run = close,
+            TEGa_1.source to 100,
+            TEGa_1.push to 400,
+            TMIn_2.run = close,
+            DummyMO_1.run = open,
+            SiH4_1.run = open,
+            DummyHyd.run = close;
+            3:00      "Barrier growth";
+            0:45      "Decrease ReactorTemp", ReactorTemp to 730+TempAnpassung,
+            TEGa_1.source to 50,
+            TEGa_1.push to 450;
+            0:15      "stabilize Temperature", SiH4_1.run = close, DummyHyd.run = open;
+            # Grow QW ###################################################################
+      2:00      "(e23_l02) InGaN Well", TMIn_2.run = open, DummyMO_1.run = close;
+      }
+	0:10	"(e23_l01) GaN Barrier and increase ReactorTemp", ReactorTemp to 820+TempAnpassung in 15, 
+		TEGa_1.source to 100,
+            	TEGa_1.push to 400,
+		TMIn_2.line = close;
+	10:00	"cap layer growth with TEGa";	
+#	0:01	"(e25) switch to H2", 
+#		N2.line = close,
+#		N2.run = close,
+#		H2.line = open,
+#		H2.run = open,
+#		PushDopant = 350,
+#		RunDopant = 350;
+#	0:30	"(e26) open sources", ReactorTemp to 1000, TMGa_1.line = open;
+#	0:15	"(e32) go to u-GaN conditions", NH3_1.source to 2000,
+#		Rotation to 45*RotationAnpassFaktor,
+#		ReactorPress to 150,
+#		DummyHyd.run = close,
+#		DummyMO_1.source to 500,
+#		TMGa_1.source to 13,
+#		TMGa_1.push to 487,
+#		RunHydride to 1125,
+#		PushHydride to 1125,
+#		RunMO to 300,
+#		PushMO to 300;
+#	4:45	"(e32b) grow ~50nm u-GaN", DummyMO_2.run = open,
+#		TEGa_1.run = close,
+#		TEGa_1.line = close,
+#		TMGa_1.run = open,
+#		DummyMO_1.run = close;
+	# Prepare for cool-down #########################################################
+	0:01	"(e20) stop growth", 
+		TEGa_1.run = close,
+		TEGa_1.line = close,
+		DummyMO_2.run = open,
+		TMIn_2.run = close,
+		TMGa_1.run = close,
+		TMGa_1.line = close,
+		DummyMO_1.run = open,
+		TMAl_1.line = close,
+		TMAl_2.run = close,
+		TMAl_2.line = close,
+		SiH4_1.line = close,
+		SiH4_1.run = close,
+		RunDopant = 350,
+		PushDopant = 350;
+	############## cool down #####################################
+	Cooldown_v1.1;
+}
+#WININFO 4, 558, 0, 73
