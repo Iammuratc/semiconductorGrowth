@@ -15,7 +15,8 @@ import xlwt
 import string
 
 #from inputEditors import martinEditor, oliverEditor
-from utilities import isTimeFormat, get_sec,martinEditor, oliverEditor
+from utilities import isTimeFormat, get_sec,martinEditor, oliverEditor, \
+                    compound_writer
 
 #from martinInputEditor import martinEditor
 #from oliverInputEditor import oliverEditor
@@ -69,11 +70,9 @@ class Recipe:
         self.reactorGases()
         self.semiconductor_layers = {}
         self.semiconductorLayers()
-        self.semiconductor_draw = pd.DataFrame()
 #        print(len(list(self.reactor_gases.keys())),len(list(self.semiconductor_layers.keys())),'\n')
         
         os.remove(os.path.abspath(self.recipe_edited))
-        plt.show()
         f.close()
     def updateVariable(self):
         for i,word in enumerate(self.words[:-1]):
@@ -298,8 +297,9 @@ class Recipe:
             for gas in self.reactor_gases.keys():
                 temp += self.reactor_gases[gas][i]
             reactor_gases_total.append(temp)
-
-        self.reactor_gases['Total'] = reactor_gases_total
+        
+        if reactor_gases_total != [0]:
+            self.reactor_gases['Total'] = reactor_gases_total
         
         return self.reactor_gases
     
@@ -334,25 +334,27 @@ class Recipe:
         return self.semiconductor_layers
 
     
-    def draw_semiconductor(self):
+    def draw_semiconductor(self,real_semiconductor=False):
         '''Draw the semiconductor using semiconductor_layers gases'''
         TMGa_1_constant = 1/30
         TEGa_constant = 1/2880*3
         TMAl_1_constant = 1/360
         TMIn_2_constant = 1/5000
 #        constants_dict = {'TMGa_1':1/30,}
-        
+        comp = lambda x: x.split('.')[0].split('_')[0]
 
         fig = plt.figure()
         ax = fig.add_axes([0,0,1,1])
         ax = plt.gca()
         fig.canvas.set_window_title('Semiconductor: {}'.format(self.recipe_name))
         
+        
+        
         def layers_with_flows():
-            my_dict = {key.split('_')[0]:value for key,value in self.semiconductor_layers.items()}
-            df = self.semiconductor_draw
+            
+            my_dict = {comp(key):value for key,value in self.semiconductor_layers.items()}
             df =  pd.DataFrame.from_dict(my_dict, orient='index')
-            layer_thickness = 0 
+            layer_thickness = 0
             thickness_flows = []
             for i_data in range(len(df.iloc[0,])-1):
                 # Iterate every second for every flow in semiconductor_layers dictionary
@@ -379,36 +381,35 @@ class Recipe:
                                 layer_thickness += TMAl_1_constant * data[index]
                             elif df.index[index] == 'TMIn':
                                 layer_thickness += TMIn_2_constant * data[index]
+                                
     
-    
-                    if not np.array_equal(flow_indices,next_flow_indices):
+                    if not np.array_equal(flow_indices,next_flow_indices) and layer_thickness != 0:
                         thickness_flows.append(([df.index[index] for flow_index in flow_indices for index in flow_index],layer_thickness))
                         layer_thickness = 0
-#            print(thickness_flows)
-            return thickness_flows
-#        print(layers_with_flows())
+            return np.array(thickness_flows)
+#        print(layers_with_flows().T[0])
         def semiconductor():
-            
             layers = layers_with_flows()
 #            scale_factor = 10**-2
             previous_layer_thickness = 0
-            key_list_layer = [gas_list[0] for gas_list in layers]
-            key_list_set = []
-            for key_list in key_list_layer:
-                if key_list not in key_list_set:
-                    key_list_set.append(key_list)
-
+            # Legend names
+            key_list = list(set([compound_writer(i) for i in layers.T[0]]))
+#            print(key_list)
+            
             color_bar = cm.get_cmap('tab10')
-            colors = color_bar(np.linspace(0, 1, len(key_list_set)))
-            color_labels = [letter for letter in string.ascii_lowercase[0:len(key_list_set)]]
-            previous_colors = []
-            semiconductor_layers = []
-#            ax.legend([color for color in colors],[key_list for key_list in key_list_set])
-#            print(layers)
+            colors = color_bar(np.linspace(0, 1, len(key_list)))
+            color_labels = [letter for letter in string.ascii_lowercase[0:len(key_list)]]
+            previous_colors=[]
+            semiconductor_layers=[]
+##            ax.legend([color for color in colors],[key_list for key_list in key_list_set])
+##            print(layers)
             for i_layer,layer in enumerate(layers):
                 gases = layer[0]
-                thickness = layer[1] * 10**-3
                 
+#                if thickness != 0:
+                compound = compound_writer(gases)
+                color = colors[key_list.index(compound)]
+                color_label = color_labels[key_list.index(compound)]
                 micrometer_check = False
 #                if len(str(thickness/10**-3).split('.')[0]) >= 3:
 #                    thickness_label = thickness * 10**-3
@@ -417,25 +418,44 @@ class Recipe:
 #                else:
 #                    thickness = thickness * 10
                 
-                color = colors[key_list_set.index(gases)]
-                color_label = color_labels[key_list_set.index(gases)]
-                semiconductor_layer = Rectangle((0,previous_layer_thickness),4,thickness,color=color,label=gases)#=['{}-'.format(gas) for gas in gases[:-1]]
-                previous_layer_thickness += thickness
-                ax.add_patch(semiconductor_layer)
-                if thickness and micrometer_check:
-                    ax.text(4.01,previous_layer_thickness-thickness/2,'{} $\mu$'.format(str(thickness)[0:4]))
-                elif thickness:
-                    ax.text(4.001,previous_layer_thickness-thickness/2,'{} nm'.format(str(thickness/10**-3)[0:4]))
-                
-                if not color_label in previous_colors:
-                    previous_colors.append(color_label)
-                    semiconductor_layers.append(semiconductor_layer)
-
-
+                if real_semiconductor:
+                    thickness = layer[1] * 10**-3
+                    semiconductor_layer = Rectangle((0,previous_layer_thickness),4,thickness,color=color,label=compound)#=['{}-'.format(gas) for gas in gases[:-1]]
+                    previous_layer_thickness += thickness
+                    ax.add_patch(semiconductor_layer)
+                    if thickness and micrometer_check:
+                        ax.text(4.01,previous_layer_thickness-thickness/2, \
+                                '{} $\mu$  {}'.format(str(thickness)[0:4],compound))
+                    elif thickness:
+                        ax.text(4.001,previous_layer_thickness-thickness/2, \
+                                '{} nm  {}'.format(str(thickness/10**-3)[0:4],compound))
+                    
+                    if not color_label in previous_colors:
+                        previous_colors.append(color_label)
+                        semiconductor_layers.append(semiconductor_layer)
+                else:
+                    box_thickness = i_layer*0.1 # 0,1,2...
+#                    print(i_layer)
+                    thickness = layer[1]
+#                    print(thickness)
+                    semiconductor_layer = Rectangle((0,box_thickness),3,0.1,color=color,label=compound)#=['{}-'.format(gas) for gas in gases[:-1]]
+#                    previous_layer_thickness += box_thickness
+                    ax.add_patch(semiconductor_layer)
+                    ax.text(1,box_thickness+0.02, '{} nm  {}'.format(str(thickness)[0:4],compound))
+                    
+#                    if not color_label in previous_colors:
+#                        previous_colors.append(color_label)
+#                        semiconductor_layers.append(semiconductor_layer)
+                    
             ax.legend(handles=semiconductor_layers,loc='lower right')
             
-            ax.set_xlim([-0.1,10])
-            ax.set_ylim([-0.1,previous_layer_thickness+1.5])
+            
+            ax.set_xlim([-0.1,5])
+            # Set y limits
+            if real_semiconductor:
+                ax.set_ylim([-0.1,previous_layer_thickness+1.5])
+            else:
+                ax.set_ylim([-0.1,box_thickness+0.5])
             plt.show()
             return ax
         return semiconductor()
@@ -463,12 +483,12 @@ class Recipe:
         plt.show()
         return fig
         
-    def write_excel(self):
+    def write_excel(self,my_dict,my_dict_title):
         book = xlwt.Workbook(encoding="utf-8")
         sheet1 = book.add_sheet(self.recipe_name)
         count = 1
         index = 1
-        for keys, values in self.reactor_gases.items():
+        for keys, values in my_dict.items():
             # Add gas names to first row
             sheet1.write(0, count, keys)
             for i, value in enumerate(values):
@@ -483,7 +503,7 @@ class Recipe:
         # Add time title
         sheet1.write(0, 0, 'Time(sec)')
     
-        book.save(self.recipe_name.replace('.epi','').replace('.EPI','') + "_data.xls")
+        book.save("{}_{}.xls".format(self.recipe_name.replace('.epi','').replace('.EPI',''),my_dict_title))
         return book
 
 
@@ -493,10 +513,12 @@ class Recipe:
 #my_recipe = Recipe('T2118GQTs.epi')
 #my_recipe.draw_semiconductor()
 #my_recipe = Recipe('T3025GSa.epi')
+#my_recipe.draw_semiconductor()
 #my_recipe.plot_dict(my_recipe.semiconductor_layers,'semiconductor')
 #my_recipe = Recipe('T9173GLSa_edit.epi')
-#my_recipe.draw_semiconductor()
+
 #my_recipe.plot_dict(my_recipe.semiconductor_layers,'Semiconductor layers: ')
 #plt.show()
+#plt.close('all')
 
 

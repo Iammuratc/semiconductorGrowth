@@ -110,3 +110,53 @@ def martinEditor(input_file):
     f.close()
     fw.close()
     return fw.name
+
+def compound_writer(compounds):
+    group_3 = set()
+    group_5 = set()
+    doping = set()
+    # Access elements from compounds e.g. NH3 >> N
+    for compound in compounds:
+        if compound.startswith('T'):
+            group_3.add(compound[2:4])
+        elif compound.startswith('N'):
+            group_5.add(compound[0])
+        elif compound.startswith('Si'):
+            doping.add(compound[0:3])
+        elif compound.startswith('MCp'):
+            doping.add('Mg')
+            
+    # Name compounds e.g. N Al Ga >> AlGaN
+
+    my_compounds = set().union(group_3,group_5,doping)
+#    return my_compounds
+    if group_3 and group_5 and doping:
+        if all(i in my_compounds for i in ['Ga','N','Al','Si']):
+            return 'InGaN (Si)'
+        elif all(i in my_compounds for i in ['Ga','N','Al','Mg']):
+            return 'InGaN (Mg)'
+        elif all(i in my_compounds for i in ['Ga','N','Mg']):
+            return 'GaN (Mg)'
+        elif all(i in my_compounds for i in ['Ga','N','Si']):
+            return 'GaN (Si)'
+        elif all(i in my_compounds for i in ['N','Al','Si']):
+            return 'AlN (Si)'
+        elif all(i in my_compounds for i in ['N','Al','Mg']):
+            return 'AlN (Mg)'
+    elif group_3 and group_5:
+        if all(i in my_compounds for i in ['Al','Ga','N']):
+            return 'AlGaN'
+        elif all(i in my_compounds for i in ['In','Ga','N']):
+            return 'InGaN'
+        elif all(i in my_compounds for i in ['Ga','N']):
+            return 'GaN'
+        elif all(i in my_compounds for i in ['Al','N']):
+            return 'AlN' 
+        elif all(i in my_compounds for i in ['In','N']):
+            return 'InN'
+    elif group_5:
+       return 0
+    else:
+        print("{} is missing, please consider adding the necessary compound".format(compounds))
+        
+        
