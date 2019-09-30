@@ -1,10 +1,10 @@
 import sys
 from PyQt5.QtWidgets import QLabel,QPushButton,QTextEdit,QMainWindow, \
                             QListWidget,QAbstractItemView,QApplication, \
-                            QWidget,QGridLayout,QFileDialog,QListWidgetItem, QVBoxLayout
+                            QWidget,QGridLayout,QFileDialog,QListWidgetItem, \
+                            QVBoxLayout, QHBoxLayout
                             
 from PyQt5 import QtGui, QtCore
-import matplotlib.pyplot as plt
 
 import os
 from recipeClass import Recipe
@@ -21,9 +21,10 @@ class Window(QMainWindow):
         self.recipe = '000.epi'
         self.recipe_class = Recipe(self.recipe)
         self.file_path = os.path.join(os.getcwd(),'recipes',self.recipe)
-#        self.got_recipe.emit('ananin ami')
-        self.text_editor = TextEditor()
+        self.text_editor = RecipeEditor()
         self.text_editor.got_text.connect(self.editor_input)
+        self.constants = ConstantsEditor()
+        self.constants.got_values.connect(self.change_constants)
         
         
         self.left = 20
@@ -34,15 +35,12 @@ class Window(QMainWindow):
         self.title ='MOVPE Recipe'
         self.initUI()
 
-        
-        
     def initUI(self):
         self.setWindowTitle(self.title)
         self.setGeometry(self.left, self.top, self.width, self.height)
         
         
-        self.file_notify = QLabel(self)
-        self.file_notify.setText('Pick a recipe')
+        self.file_notify = QLabel('Select a recipe', self)
         
         self.recipe_button = QPushButton('Recipe folder')
         self.recipe_button.clicked.connect(self.get_input)
@@ -110,6 +108,9 @@ class Window(QMainWindow):
         excel_d.triggered.connect(self.excel_valves)
         excel_e = excel.addAction('Reactor properties')
         excel_e.triggered.connect(self.excel_reactor_properties)
+        excel_f = excel.addAction('Highlighted gases')
+        excel_f.triggered.connect(self.excel_any)
+
         
         tools = mainMenu.addMenu('Tools')
         semiconductor_a = tools.addAction('Draw semiconductor')
@@ -118,6 +119,8 @@ class Window(QMainWindow):
         semiconductor_b.triggered.connect(self.draw_semiconductor_2)
         editor = tools.addAction('Recipe Editor')
         editor.triggered.connect(self.open_editor)
+        constants = tools.addAction('Gas constants')
+        constants.triggered.connect(self.open_constants)
         
         
         
@@ -132,7 +135,7 @@ class Window(QMainWindow):
     
         
         layout.addWidget(self.recipe_button,0,0,1,5)
-        layout.addWidget(self.file_notify,1,2,1,3)
+        layout.addWidget(self.file_notify,1,1)
 
         layout.addWidget(self.b_reactor,2,0)
         layout.addWidget(self.qlistwidget_reactor_gas,3,0)
@@ -155,9 +158,6 @@ class Window(QMainWindow):
         
 #        dialog = TextEditor(self)
 #        dialog.show()
-
-
-
 
     def get_input(self):
         # Clear all variables
@@ -206,12 +206,11 @@ class Window(QMainWindow):
     def open_editor(self):
 #        dialog = TextEditor()
         self.text_editor.show()
+    def open_constants(self):
+        self.constants.show()
 
 
     def editor_input(self,text):
-#        editor = TextEditor()
-#        recipe_text = editor.text_recipe.toPlainText()
-#        recipe_text = self.text_recipe.toPlainText()
         
         with open('editor_recipe.epi','w+') as f:
             f.write(text)
@@ -306,17 +305,29 @@ class Window(QMainWindow):
     def excel_reactor_properties(self):
         return self.recipe_class.write_excel(self.recipe_class.reactor_variables_dic(), 'reactor_properties')   
     
+    def excel_any(self):
+        r_dict = {"{}_r".format(key):value for (key,value) in self.select_reactor_gas().items()}
+        s_dict = {"{}_s".format(key):value for (key,value) in self.select_sc_gas().items()}
+        my_dict = {**self.select_gas(),**self.select_valve(),**r_dict,**s_dict,**self.select_reactor_prop()}
+        return self.recipe_class.write_excel(my_dict, 'selected_flows')
+    
     def draw_semiconductor(self):
         return self.recipe_class.draw_semiconductor(real_semiconductor=True)
     def draw_semiconductor_2(self):
         return self.recipe_class.draw_semiconductor(real_semiconductor=False)
-
-class TextEditor(QWidget):
+    
+    def change_constants(self,values):
+        self.recipe_class.TMGa_constant = values[0]#self.constants.TMGa
+        self.recipe_class.TEGa_constant = values[1]#self.constants.TEGa
+        self.recipe_class.TMAl_constant = values[2]#self.constants.TMAl
+        self.recipe_class.TMIn_constant = values[3]#self.constants.TMIn
+        # print(self.recipe_class.TMGa_constant)
+class RecipeEditor(QWidget):
     
    got_text = QtCore.pyqtSignal(str)
     
    def __init__(self):
-        super(TextEditor, self).__init__()
+        super(RecipeEditor, self).__init__()
         self.text_recipe = QTextEdit(self)
         
         # Init user interface
@@ -329,15 +340,14 @@ class TextEditor(QWidget):
         load_b = QPushButton('Load recipe')
         load_b.clicked.connect(self.load_text)
         
-        export_b = QPushButton('Export text')
+        export_b = QPushButton('Send recipe to the program')
         export_b.clicked.connect(self.export_text)
         
 #        layout = QVBoxLayout()
 #        layout.addStretch(1)
 #        layout.addWidget(self.text_recipe)
 #        self.setLayout(layout)
-        
-        
+                
         layout = QVBoxLayout()
         layout.addWidget(load_b)
         layout.addWidget(self.text_recipe)
@@ -346,18 +356,11 @@ class TextEditor(QWidget):
         self.setLayout(layout)
         self.setMinimumWidth(350)
         
-#        layout = QGridLayout()
-#        wid.setLayout(layout)
-#        layout.addWidget(self.text_recipe,0,1,5,5)
-#        layout.addWidget(load_b,0,0)
-#        layout.addWidget(save_b,1,6)
-#        layout.addWidget(export_b,2,6)
-        
-        
    def load_text(self):
-       with open(Window.global_path,'r') as fo:
-           text = fo.read()
-           self.text_recipe.setText(text)
+       if Window.global_path:
+           with open(Window.global_path,'r') as fo:
+               text = fo.read()
+               self.text_recipe.setText(text)
            
    def save_text(self):
        options = QFileDialog.Options()
@@ -375,7 +378,72 @@ class TextEditor(QWidget):
    def export_text(self):
        self.got_text.emit(self.text_recipe.toPlainText())
         
+
+class ConstantsEditor(QWidget):
+    got_values = QtCore.pyqtSignal(list)
+    def __init__(self):
+        super(ConstantsEditor, self).__init__()
+        values=[]
+        with open(os.path.join(os.getcwd(),'gas_constants.txt')) as f:
+            for line in f.readlines()[-4:]:
+                value = line.split('=')[-1]
+                value = value.replace('\n','')#.replace(' ','')
+                values.append(value)
+        self.TMGa = QTextEdit()
+        self.TEGa = QTextEdit()
+        self.TMAl = QTextEdit()
+        self.TMIn = QTextEdit()
+        self.TMGa.setText(values[0])
+        self.TEGa.setText(values[1])
+        self.TMAl.setText(values[2])
+        self.TMIn.setText(values[3])
         
+        
+        self.initUI()
+    
+    def initUI(self):
+        TMGa_label = QLabel('TMGa')
+        TEGa_label = QLabel('TEGa')
+        TMAl_label = QLabel('TMAl')
+        TMIn_label = QLabel('TMIn')
+        export = QPushButton('Send constants')
+        export.clicked.connect(self.export_values)
+        
+        layout = QGridLayout(self)
+        layout.addWidget(TMGa_label,0,0)
+        layout.addWidget(TEGa_label,1,0)
+        layout.addWidget(TMAl_label,2,0)
+        layout.addWidget(TMIn_label,3,0)
+        layout.addWidget(self.TMGa,0,1)
+        layout.addWidget(self.TEGa,1,1)
+        layout.addWidget(self.TMAl,2,1)
+        layout.addWidget(self.TMIn,3,1)
+        layout.addWidget(export,4,0,4,2)
+#        vbox = QVBoxLayout()
+#        vbox_label = QVBoxLayout()
+#        vbox_label.addWidget(TMGa_label)
+#        vbox_label.addWidget(TEGa_label)
+#        vbox_label.addWidget(TMAl_label)
+#        vbox_label.addWidget(TMIn_label)
+#        vbox.addWidget(self.TMGa)
+#        vbox.addWidget(self.TEGa)
+#        vbox.addWidget(self.TMAl)
+#        vbox.addWidget(self.TMIn)
+#        layout = QHBoxLayout()
+#        layout.addLayout(vbox_label)
+#        layout.addLayout(vbox)
+        
+        self.setGeometry(300, 300, 150, 150)
+        self.setLayout(layout)
+        self.setWindowTitle('Constants')
+#        self.show()
+    def export_values(self):
+        values=[float(self.TMGa.toPlainText()),
+                float(self.TEGa.toPlainText()),
+                float(self.TMAl.toPlainText()),
+                float(self.TMIn.toPlainText())]
+        self.got_values.emit(values)
+    
 if __name__ == '__main__':
     
     try:

@@ -130,33 +130,50 @@ def compound_writer(compounds):
 
     my_compounds = set().union(group_3,group_5,doping)
 #    return my_compounds
-    if group_3 and group_5 and doping:
-        if all(i in my_compounds for i in ['Ga','N','Al','Si']):
-            return 'InGaN (Si)'
-        elif all(i in my_compounds for i in ['Ga','N','Al','Mg']):
-            return 'InGaN (Mg)'
-        elif all(i in my_compounds for i in ['Ga','N','Mg']):
-            return 'GaN (Mg)'
-        elif all(i in my_compounds for i in ['Ga','N','Si']):
-            return 'GaN (Si)'
-        elif all(i in my_compounds for i in ['N','Al','Si']):
-            return 'AlN (Si)'
-        elif all(i in my_compounds for i in ['N','Al','Mg']):
-            return 'AlN (Mg)'
-    elif group_3 and group_5:
-        if all(i in my_compounds for i in ['Al','Ga','N']):
+#    if group_3 and group_5 and doping:
+#        if all(i in my_compounds for i in ['In','Ga','N','Al','Si']):
+#            return 'InAlGaN (Si)'
+#        elif all(i in my_compounds for i in ['Ga','N','Al','Si']):
+#            return 'InGaN (Si)'
+#        elif all(i in my_compounds for i in ['Ga','N','Al','Mg']):
+#            return 'InGaN (Mg)'
+#        elif all(i in my_compounds for i in ['Ga','N','Mg']):
+#            return 'GaN (Mg)'
+#        elif all(i in my_compounds for i in ['Ga','N','Si']):
+#            return 'GaN (Si)'
+#        elif all(i in my_compounds for i in ['N','Al','Si']):
+#            return 'AlN (Si)'
+#        elif all(i in my_compounds for i in ['N','Al','Mg']):
+#            return 'AlN (Mg)'
+    if group_3 and group_5:
+        if all(i in my_compounds for i in ['In','Ga','N','Al']):
+            if doping:
+                return 'InAlGaN ({})'.format(str(list(doping)[0]))
+            return 'InAlGaN'
+        elif all(i in my_compounds for i in ['Al','Ga','N']):
+            if doping:
+                return 'AlGaN ({})'.format(str(list(doping)[0]))
             return 'AlGaN'
         elif all(i in my_compounds for i in ['In','Ga','N']):
+            if doping:
+                return 'InGaN ({})'.format(str(list(doping)[0]))
             return 'InGaN'
         elif all(i in my_compounds for i in ['Ga','N']):
+            if doping:
+                return 'GaN ({})'.format(str(list(doping)[0]))
             return 'GaN'
         elif all(i in my_compounds for i in ['Al','N']):
-            return 'AlN' 
+            if doping:
+                return 'AlN ({})'.format(str(list(doping)[0]))
+            return 'AlN'
         elif all(i in my_compounds for i in ['In','N']):
+            if doping:
+                return 'InN ({})'.format(str(list(doping)[0]))
             return 'InN'
+        else:
+            return "{} is missing, please consider adding the necessary compound".format(compounds)
     elif group_5:
        return 0
-    else:
-        print("{} is missing, please consider adding the necessary compound".format(compounds))
+
         
         

@@ -46,7 +46,13 @@ class Recipe:
 #                clear_text = contents.replace(ch,'')
             self.clear_text = self.contents.replace(',','').replace(';','')
             self.words = self.clear_text.split()# List of text
-          
+        
+        self.TMGa_constant = 1/30
+        self.TEGa_constant = 1/2880*3
+        self.TMAl_constant = 1/360
+        self.TMIn_constant = 1/5000
+        self.constants = [self.TMGa_constant,self.TEGa_constant,self.TMAl_constant,self.TMIn_constant]
+        
         # Gases, Valves, Initial values of the flows, Reactor dictionary, List of variables in the reactor: ReactorTemp, ReactorPres etc., The times where the system makes changes, 00:30 etc.
         self.gas_flows, self.valves, self.initial_flows, self.reactor_variables, self.change_times = [[] for i in range(5)]
         self.init_vars_dict = {}
@@ -336,10 +342,6 @@ class Recipe:
     
     def draw_semiconductor(self,real_semiconductor=False):
         '''Draw the semiconductor using semiconductor_layers gases'''
-        TMGa_1_constant = 1/30
-        TEGa_constant = 1/2880*3
-        TMAl_1_constant = 1/360
-        TMIn_2_constant = 1/5000
 #        constants_dict = {'TMGa_1':1/30,}
         comp = lambda x: x.split('.')[0].split('_')[0]
 
@@ -374,20 +376,20 @@ class Recipe:
                         for index in flow_index:
                             # Iterate nonzero gas flows by index
                             if df.index[index] == 'TMGa':
-                                layer_thickness += TMGa_1_constant * data[index]
+                                layer_thickness += self.TMGa_constant * data[index]
                             elif df.index[index] == 'TEGa':
-                                layer_thickness += TEGa_constant * data[index]
+                                layer_thickness += self.TEGa_constant * data[index]
                             elif df.index[index] == 'TMAl':
-                                layer_thickness += TMAl_1_constant * data[index]
+                                layer_thickness += self.TMAl_constant * data[index]
                             elif df.index[index] == 'TMIn':
-                                layer_thickness += TMIn_2_constant * data[index]
+                                layer_thickness += self.TMIn_constant * data[index]
                                 
     
                     if not np.array_equal(flow_indices,next_flow_indices) and layer_thickness != 0:
                         thickness_flows.append(([df.index[index] for flow_index in flow_indices for index in flow_index],layer_thickness))
                         layer_thickness = 0
             return np.array(thickness_flows)
-#        print(layers_with_flows().T[0])
+        print(layers_with_flows().T)
         def semiconductor():
             layers = layers_with_flows()
 #            scale_factor = 10**-2
@@ -410,7 +412,7 @@ class Recipe:
                 compound = compound_writer(gases)
                 color = colors[key_list.index(compound)]
                 color_label = color_labels[key_list.index(compound)]
-                micrometer_check = False
+                # micrometer_check = False
 #                if len(str(thickness/10**-3).split('.')[0]) >= 3:
 #                    thickness_label = thickness * 10**-3
 #                    micrometer_check = True
@@ -420,15 +422,15 @@ class Recipe:
                 
                 if real_semiconductor:
                     thickness = layer[1] * 10**-3
-                    semiconductor_layer = Rectangle((0,previous_layer_thickness),4,thickness,color=color,label=compound)#=['{}-'.format(gas) for gas in gases[:-1]]
+                    semiconductor_layer = Rectangle((0,previous_layer_thickness),3,thickness,color=color,label=compound)#=['{}-'.format(gas) for gas in gases[:-1]]
                     previous_layer_thickness += thickness
                     ax.add_patch(semiconductor_layer)
-                    if thickness and micrometer_check:
-                        ax.text(4.01,previous_layer_thickness-thickness/2, \
-                                '{} $\mu$  {}'.format(str(thickness)[0:4],compound))
-                    elif thickness:
-                        ax.text(4.001,previous_layer_thickness-thickness/2, \
-                                '{} nm  {}'.format(str(thickness/10**-3)[0:4],compound))
+                    # if thickness and micrometer_check:
+                    #     ax.text(3.01,previous_layer_thickness-thickness/2,
+                    #             '{} $\mu$  {}'.format(str(thickness)[0:4],compound))
+                    # elif thickness:
+                    ax.text(3.001,previous_layer_thickness-thickness/2,
+                            '{} nm  {}'.format(str(thickness/10**-3)[0:4],compound))
                     
                     if not color_label in previous_colors:
                         previous_colors.append(color_label)
@@ -446,16 +448,18 @@ class Recipe:
 #                    if not color_label in previous_colors:
 #                        previous_colors.append(color_label)
 #                        semiconductor_layers.append(semiconductor_layer)
-                    
+            # Add substrate layer
+            substrate = Rectangle((0,-1),3,1,color='g')
+            ax.add_patch(substrate)
             ax.legend(handles=semiconductor_layers,loc='lower right')
-            
+            ax.text(1,-0.5,'Substrate')
             
             ax.set_xlim([-0.1,5])
             # Set y limits
             if real_semiconductor:
-                ax.set_ylim([-0.1,previous_layer_thickness+1.5])
+                ax.set_ylim([-1.1,previous_layer_thickness+1.5])
             else:
-                ax.set_ylim([-0.1,box_thickness+0.5])
+                ax.set_ylim([-1.1,box_thickness+0.5])
             plt.show()
             return ax
         return semiconductor()
@@ -508,8 +512,8 @@ class Recipe:
 
 
 #all_recipes = ['GaN_1.EPI', 'InGaN_QW.EPI', 'T2118GQTs.epi', 'T3025GSa.epi', 'T3039Ga.epi', 'T3130GnSa.epi', 'Y1129.EPI', 'Y1914GQT.EPI', 'Y2041GA.EPI', 'Y2075GQA.EPI', 'Y2096GPA.EPI', 'Y2131GQA.EPI']
-#my_recipe = Recipe('Y1914GQT.EPI')
-#my_recipe.draw_semiconductor()
+# my_recipe = Recipe('Y2131GQA.EPI')
+# my_recipe.draw_semiconductor()
 #my_recipe = Recipe('T2118GQTs.epi')
 #my_recipe.draw_semiconductor()
 #my_recipe = Recipe('T3025GSa.epi')

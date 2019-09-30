@@ -1,0 +1,6 @@
+Constants for semiconductor layers
+
+TMGa_constant = 0.03333333333333333
+TEGa_constant = 0.0010416666666666667
+TMAl_constant = 0.002777777777777778
+TMIn_constant = 0.0002
