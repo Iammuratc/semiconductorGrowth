@@ -389,7 +389,7 @@ class Recipe:
                         thickness_flows.append(([df.index[index] for flow_index in flow_indices for index in flow_index],layer_thickness))
                         layer_thickness = 0
             return np.array(thickness_flows)
-        print(layers_with_flows().T)
+        # print(layers_with_flows().T)
         def semiconductor():
             layers = layers_with_flows()
 #            scale_factor = 10**-2
@@ -430,7 +430,7 @@ class Recipe:
                     #             '{} $\mu$  {}'.format(str(thickness)[0:4],compound))
                     # elif thickness:
                     ax.text(3.001,previous_layer_thickness-thickness/2,
-                            '{} nm  {}'.format(str(thickness/10**-3)[0:4],compound))
+                            '{} nm'.format(str(thickness/10**-3)[0:4]))
                     
                     if not color_label in previous_colors:
                         previous_colors.append(color_label)
