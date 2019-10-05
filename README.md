@@ -20,7 +20,7 @@ Also, you can plot the final semiconductor structure under 'Tools'. The last fig
 I used Python3 for this project.
 
 You could clone the repository as follows:
-$ git clone git@github.com:Iammuratc/semiconductorGrowth.git
+````git clone git@github.com:Iammuratc/semiconductorGrowth.git````
 
 Run the app by typing
-$ python app.py
+````python app.py````
