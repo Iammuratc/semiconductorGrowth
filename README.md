@@ -12,7 +12,7 @@ You may see a screenshot from the application below. The 3rd and 4rd columns sho
 
 ![Flow of TMGa](https://github.com/Iammuratc/semiconductorGrowth/blob/master/ss2.png)
 
-Also, you can plot the final semiconductor structure under 'Tools'. The last figure above shows the semiconductor structure, which is a p-type AlN/GaN semiconductor. Besides that, it is possible to export data to excel under 'Excel'.
+Also, you can plot the final semiconductor structure under 'Tools'. The last figure below shows the semiconductor structure, which is a p-type AlN/GaN semiconductor. Besides that, it is possible to export data to excel under 'Excel'.
 
 ![Preview of the semiconductor](https://github.com/Iammuratc/semiconductorGrowth/blob/master/ss1.png)
 
