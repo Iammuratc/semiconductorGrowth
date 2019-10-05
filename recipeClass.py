@@ -449,17 +449,17 @@ class Recipe:
 #                        previous_colors.append(color_label)
 #                        semiconductor_layers.append(semiconductor_layer)
             # Add substrate layer
-            substrate = Rectangle((0,-1),3,1,color='g')
+            substrate = Rectangle((0,-0.2),3,0.2,color='g')
             ax.add_patch(substrate)
             ax.legend(handles=semiconductor_layers,loc='lower right')
-            ax.text(1,-0.5,'Substrate')
+            ax.text(1,-0.1,'Substrate')
             
             ax.set_xlim([-0.1,5])
             # Set y limits
             if real_semiconductor:
-                ax.set_ylim([-1.1,previous_layer_thickness+1.5])
+                ax.set_ylim([-0.3,previous_layer_thickness+1.5])
             else:
-                ax.set_ylim([-1.1,box_thickness+0.5])
+                ax.set_ylim([-0.3,box_thickness+0.5])
             plt.show()
             return ax
         return semiconductor()
